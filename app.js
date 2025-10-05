@@ -1075,67 +1075,310 @@ function exportBudgetPDF(budgetId) {
         }
     }
     
-    // Simular exportação PDF (implementação básica)
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Cabeçalho
-    doc.setFontSize(20);
-    doc.setTextColor(0, 86, 179);
-    doc.text('VIDRAÇARIA DA FAMÍLIA', 105, 20, { align: 'center' });
+    // Configurar fonte para suportar caracteres especiais
+    doc.setFont('helvetica');
     
-    doc.setFontSize(16);
-    doc.text('ORÇAMENTO', 105, 30, { align: 'center' });
+    // =============================================================================
+    // CABEÇALHO PROFISSIONAL
+    // =============================================================================
     
-    // Dados do cliente
+    // Fundo colorido no cabeçalho
+    doc.setFillColor(0, 86, 179); // Azul da empresa
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    // Logo/Nome da empresa
+    doc.setFontSize(24);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VIDRAÇARIA DA FAMÍLIA', 105, 15, { align: 'center' });
+    
+    // Slogan
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Cliente: ${budget.client}`, 20, 50);
-    doc.text(`Telefone: ${budget.phone || '—'}`, 20, 60);
-    doc.text(`Data: ${budget.date}`, 20, 70);
-    doc.text(`Total: ${formatCurrency(budget.total)}`, 20, 80);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Sua Melhor Opção em Vidros e Espelhos', 105, 23, { align: 'center' });
     
-    // Itens
-    let y = 100;
-    doc.text('ITENS DO ORÇAMENTO:', 20, y);
-    y += 10;
+    // Título do documento
+    doc.setFontSize(18);
+    doc.text('ORÇAMENTO', 105, 33, { align: 'center' });
+    
+    // =============================================================================
+    // INFORMAÇÕES DA EMPRESA
+    // =============================================================================
+    
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Rua Elias Calixto, 699 - Centro -Ipiranga', 105, 45, { align: 'center' });
+    doc.text('(42) 99960-8330 ', 105, 50, { align: 'center' });
+    doc.text('sremersonp@gmail.com • ', 105, 55, { align: 'center' });
+    
+    // =============================================================================
+    // DADOS DO CLIENTE
+    // =============================================================================
+    
+    let y = 70;
+    
+    // Caixa de dados do cliente
+    doc.setFillColor(240, 245, 255);
+    doc.rect(15, y, 180, 25, 'F');
+    doc.setDrawColor(200, 220, 255);
+    doc.rect(15, y, 180, 25);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 86, 179);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DADOS DO CLIENTE', 25, y + 8);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${budget.client}`, 25, y + 15);
+    doc.text(`Telefone: ${budget.phone || '—'}`, 25, y + 20);
+    doc.text(`Data do Orçamento: ${formatDate(budget.date)}`, 120, y + 20);
+    
+    // =============================================================================
+    // ITENS DO ORÇAMENTO - CABEÇALHO DA TABELA
+    // =============================================================================
+    
+    y += 35;
+    
+    // Cabeçalho da tabela
+    doc.setFillColor(0, 86, 179);
+    doc.rect(15, y, 180, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    
+    // Ajustar posições das colunas
+    doc.text('#', 20, y + 7);
+    doc.text('DESCRIÇÃO', 40, y + 7);
+    doc.text('DIMENSÕES', 110, y + 7);
+    doc.text('QTD', 150, y + 7);
+    doc.text('VALOR UNIT.', 175, y + 7);
+    
+    y += 15;
+    
+    // =============================================================================
+    // ITENS DO ORÇAMENTO
+    // =============================================================================
+    
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
     
     budget.items.forEach((item, index) => {
+        // Verificar se precisa de nova página
         if (y > 250) {
             doc.addPage();
-            y = 20;
+            y = 30;
+            
+            // Recriar cabeçalho da tabela na nova página
+            doc.setFillColor(0, 86, 179);
+            doc.rect(15, y, 180, 10, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            
+            doc.text('#', 20, y + 7);
+            doc.text('DESCRIÇÃO', 40, y + 7);
+            doc.text('DIMENSÕES', 110, y + 7);
+            doc.text('QTD', 150, y + 7);
+            doc.text('VALOR UNIT.', 175, y + 7);
+            
+            y += 15;
+            doc.setFontSize(9);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
         }
+        
+        // Cor de fundo alternada para as linhas
+        if (index % 2 === 0) {
+            doc.setFillColor(250, 250, 250);
+        } else {
+            doc.setFillColor(240, 245, 255);
+        }
+        doc.rect(15, y - 4, 180, 8, 'F');
         
         const categoryName = PRICE_TABLE[item.category]?.name || 'Desconhecido';
         let description = '';
         
-        if (item.category === "5") description = item.option;
-        else if (item.category === "6") description = item.material;
-        else if (item.category === "7") description = item.panel_type;
-        else if (item.category === "8") description = 'Tela Mosquiteiro';
-        else description = `${item.model} - ${item.thickness} - ${item.color}`;
+        // Descrição detalhada
+        if (item.category === "1") {
+            description = `${item.model || ''} - ${item.thickness || ''}mm - ${item.color || ''}`;
+        } else if (item.category === "2") {
+            description = `${item.model || ''} - ${item.thickness || ''}mm - ${item.color || ''}`;
+        } else if (item.category === "5") {
+            description = item.option || '';
+        } else if (item.category === "6") {
+            description = item.material || '';
+        } else if (item.category === "7") {
+            description = item.panel_type || '';
+        } else if (item.category === "8") {
+            description = 'Tela Mosquiteiro';
+        }
         
-        doc.text(`${index + 1}. ${categoryName}`, 25, y);
-        doc.text(`   ${description}`, 30, y + 5);
-        doc.text(`   ${item.width.toFixed(2)}m × ${item.height.toFixed(2)}m • Qtd: ${item.quantity}`, 30, y + 10);
-        doc.text(`   Subtotal: ${formatCurrency(item.subtotal)}`, 30, y + 15);
+        // Limpar e formatar descrição
+        description = description.replace(/[^\x20-\x7E\u00C0-\u00FF]/g, '').trim();
         
-        y += 25;
+        const dimensions = `${parseFloat(item.width).toFixed(2)}m x ${parseFloat(item.height).toFixed(2)}m`;
+        const area = (parseFloat(item.width) * parseFloat(item.height)).toFixed(2) + 'm²';
+        const unitPrice = item.price || (item.subtotal / item.quantity);
+        
+        // Número do item
+        doc.text((index + 1).toString(), 20, y);
+        
+        // Descrição (quebrar linha se necessário)
+        const descLines = doc.splitTextToSize(`${categoryName}: ${description}`, 60);
+        if (descLines.length > 1) {
+            doc.text(descLines[0], 40, y);
+            if (descLines[1]) {
+                doc.text(descLines[1], 40, y + 4);
+            }
+        } else {
+            doc.text(descLines[0], 40, y);
+        }
+        
+        // Dimensões
+        doc.text(dimensions, 110, y);
+        doc.text(area, 110, y + 4);
+        
+        // Quantidade
+        doc.text(item.quantity.toString(), 152, y);
+        
+        // Valor unitário
+        doc.text(formatCurrency(unitPrice), 175, y, { align: 'right' });
+        
+        // Calcular altura da linha baseado no conteúdo
+        const lineHeight = Math.max(8, descLines.length * 4);
+        y += lineHeight;
     });
     
-    // Rodapé
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text('Emitido em ' + new Date().toLocaleString('pt-BR'), 20, 280);
+    // =============================================================================
+    // TOTAL E OBSERVAÇÕES
+    // =============================================================================
     
-    // Salvar PDF
-    const fileName = `Orcamento_${budget.client.replace(/\s+/g, '_')}.pdf`;
+    y += 10;
+    
+    // Linha separadora
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, y, 195, y);
+    
+    y += 15;
+    
+    // Total - corrigir texto
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('TOTAL:', 120, y);
+    doc.text(formatCurrency(budget.total), 190, y, { align: 'right' });
+    
+    y += 15;
+    
+    // Observações
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    
+    const observacoes = [
+        '• Orçamento válido por 5 dias',
+        '• Preços sujeitos a alteração sem aviso prévio',
+        '• Instalação não incluída no valor',
+        '• Medidas sujeitas a confirmação técnica no local',
+        '• Formas de pagamento: À vista (5% desconto) ou parcelado'
+    ];
+    
+    doc.text('OBSERVAÇÕES:', 15, y);
+    y += 5;
+    
+    observacoes.forEach(obs => {
+        // Limpar caracteres especiais problemáticos
+        const cleanObs = obs.replace(/[^\x20-\x7E\u00C0-\u00FF]/g, '');
+        doc.text(cleanObs, 20, y);
+        y += 4;
+    });
+    
+    // =============================================================================
+    // RODAPÉ PROFISSIONAL
+    // =============================================================================
+    
+    y = 275;
+    
+    // Linha do rodapé
+    doc.setDrawColor(0, 86, 179);
+    doc.line(15, y, 195, y);
+    
+    y += 5;
+    
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Agradecemos pela preferência! Estamos à disposição para esclarecer qualquer dúvida.', 105, y, { align: 'center' });
+    y += 4;
+    
+    const now = new Date();
+    const dataHora = now.toLocaleString('pt-BR');
+    doc.text(`Orçamento gerado em ${dataHora} - Vidraçaria da Família © ${now.getFullYear()}`, 105, y, { align: 'center' });
+    
+    // =============================================================================
+    // SALVAR PDF
+    // =============================================================================
+    
+    // Limpar nome do arquivo
+    const cleanClientName = budget.client.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚâêîôÂÊÎÔãõÃÕçÇ ]/g, '_');
+    const fileName = `Orcamento_${cleanClientName}_${formatDate(budget.date).replace(/\//g, '-')}.pdf`;
+    
     doc.save(fileName);
     
-    showNotification('PDF gerado com sucesso!');
+    showNotification('📄 PDF profissional gerado com sucesso!');
 }
 
 // =============================================================================
+// FUNÇÕES AUXILIARES CORRIGIDAS
+// =============================================================================
+
+function formatDate(dateString) {
+    if (!dateString) return '—';
+    
+    try {
+        // Se já estiver no formato brasileiro, retornar como está
+        if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            return dateString;
+        }
+        
+        // Se for ISO string ou outro formato
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return dateString;
+        }
+        return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+        return dateString;
+    }
+}
+
+function formatCurrency(value) {
+    if (typeof value !== 'number') {
+        value = parseFloat(value) || 0;
+    }
+    
+    // Formatar como moeda brasileira
+    return 'R$ ' + value.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// =============================================================================
+// FUNÇÃO PARA LIMPAR CARACTERES PROBLEMÁTICOS
+// =============================================================================
+
+function cleanText(text) {
+    if (typeof text !== 'string') return '';
+    
+    // Remover caracteres problemáticos mas manter acentuação portuguesa
+    return text.replace(/[^\x20-\x7E\u00C0-\u00FF]/g, '');
+}// =============================================================================
 // INICIALIZAÇÃO FINAL
 // =============================================================================
 
