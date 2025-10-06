@@ -62,7 +62,7 @@
                 <button class="btn small" onclick="openLoginModal()">👤 Admin</button>
             </div>
             <div class="muted">
-                💡 Selecione produtos, configure medidas e adicione itens. Salve orçamentos com dados do cliente.
+                💡 Selecione produtos, configure medidas e adicione itens. Clique em "Ver Orçamento" para gerar o PDF.
                 <span id="connectionStatus" style="margin-left:10px; padding:2px 8px; border-radius:4px; background:#dcfce7; color:#166534; font-size:0.8rem;">
                     ✅ Conectado ao Banco de Dados
                 </span>
@@ -84,9 +84,6 @@
                     <label>Telefone <span class="required">*</span></label>
                     <input id="telefone" placeholder="(11) 99999-9999" required>
                     <div class="error" id="telefoneError"></div>
-
-                    <label>Data do Orçamento</label>
-                    <input id="dataOrc" type="date">
                 </div>
 
                 <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f6">
@@ -124,7 +121,7 @@
                 </div>
 
                 <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:12px">
-                    <div class="tot">💰 Subtotal: <span id="subtotal">R$ 0,00</span></div>
+                    <div class="muted">💰 O valor será calculado no PDF</div>
                     <div style="display:flex;gap:8px">
                         <button class="btn" id="addItemBtn" disabled>➕ Adicionar Item</button>
                         <button class="ghost" id="resetFormBtn">🔄 Limpar</button>
@@ -143,7 +140,7 @@
                     <h2 style="margin:0; color:var(--accent);">📋 Orçamento Atual</h2>
                     <div class="right-actions">
                         <button class="ghost small" id="clearBudgetBtn">🗑️ Limpar Tudo</button>
-                        <button class="btn small" id="saveBudgetBtn">💾 Salvar Orçamento</button>
+                        <button class="btn small" id="viewBudgetBtn" disabled>👁️ Ver Orçamento</button>
                     </div>
                 </div>
 
@@ -154,8 +151,8 @@
                 </div>
 
                 <div style="margin-top:12px; display:flex;justify-content:space-between;align-items:center; padding:12px; background:#f0fdf4; border-radius:8px;">
-                    <div style="font-weight:700; color:#166534;">💰 Total Geral</div>
-                    <div class="tot" id="grandTotal">R$ 0,00</div>
+                    <div style="font-weight:700; color:#166534;">📊 Total de Itens</div>
+                    <div class="tot" id="itemCount">0</div>
                 </div>
 
                 <hr style="margin:12px 0;border:none;border-top:1px solid #eef2f6">

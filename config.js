@@ -23,9 +23,9 @@ let isLoggedIn = false;
 // =============================================================================
 
 let categorySelect, dynamicFields, widthInput, heightInput, qtyInput;
-let subtotalEl, addItemBtn, resetFormBtn, itemsList, grandTotalEl;
-let clearBudgetBtn, saveBudgetBtn, searchInput, savedBudgetsDiv;
-let clienteEl, telefoneEl, dataOrcEl;
+let addItemBtn, resetFormBtn, itemsList, itemCountEl;
+let clearBudgetBtn, viewBudgetBtn, searchInput, savedBudgetsDiv;
+let clienteEl, telefoneEl;
 
 // =============================================================================
 // FUNÇÕES UTILITÁRIAS
