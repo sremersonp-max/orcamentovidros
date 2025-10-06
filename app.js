@@ -373,7 +373,7 @@ function updateViewBudgetButton() {
 }
 
 // =============================================================================
-// GESTÃO DE ITENS DO ORÇAMENTO
+// GESTÃO DE ITENS DO ORÇAMENTO (COM ESCOLHA APÓS ADICIONAR)
 // =============================================================================
 
 function addItem() {
@@ -442,19 +442,42 @@ function addItem() {
             editItemIndex = null;
             addItemBtn.textContent = '➕ Adicionar Item';
             showNotification('Item atualizado com sucesso!');
+            
+            renderItemsList();
+            resetItemForm();
+            updateViewBudgetButton();
         } else {
             // Adicionando novo item
             currentItems.push(item);
-            showNotification('Item adicionado ao orçamento!');
+            
+            renderItemsList();
+            resetItemForm();
+            updateViewBudgetButton();
+            
+            // Perguntar se deseja adicionar mais itens ou ver o orçamento
+            askNextAction();
         }
-        
-        renderItemsList();
-        resetItemForm();
-        updateViewBudgetButton();
         
     } catch (error) {
         console.error('Erro ao adicionar item:', error);
         showNotification('Erro ao calcular item: ' + error.message, 'error');
+    }
+}
+
+// FUNÇÃO PARA PERGUNTAR PRÓXIMA AÇÃO APÓS ADICIONAR ITEM
+function askNextAction() {
+    const action = confirm('✅ Item adicionado com sucesso!\n\nDeseja adicionar mais itens?\n\n• Clique em "OK" para adicionar outro item\n• Clique em "Cancelar" para gerar o PDF do orçamento');
+    
+    if (action) {
+        // Usuário quer adicionar mais itens - manter formulário limpo para novo item
+        showNotification('📝 Continue adicionando itens...');
+    } else {
+        // Usuário quer ver o orçamento - gerar PDF
+        if (currentItems.length > 0 && clienteEl.value.trim() && telefoneEl.value.trim()) {
+            viewBudget();
+        } else {
+            showNotification('Preencha todos os dados do cliente antes de gerar o PDF', 'error');
+        }
     }
 }
 
@@ -621,11 +644,12 @@ function viewBudget() {
     // Gerar PDF primeiro
     exportBudgetPDF('current');
     
-    // Depois salvar automaticamente (local e banco)
-    saveBudget();
+    // Depois salvar automaticamente (local e banco) SEM AVISO
+    saveBudgetSilently();
 }
 
-async function saveBudget() {
+// FUNÇÃO DE SALVAMENTO SILENCIOSO (SEM AVISOS)
+async function saveBudgetSilently() {
     const client = clienteEl.value.trim();
     const phone = telefoneEl.value.trim();
     const date = new Date().toISOString().split('T')[0]; // Data atual do sistema
@@ -643,33 +667,19 @@ async function saveBudget() {
     };
     
     try {
-        let savedToSupabase = false;
-        let savedToLocal = false;
-        
         // SALVAR NO BANCO DE DADOS (SUPABASE)
         if (supabase) {
             try {
-                console.log('💾 Tentando salvar no Supabase...', budget);
-                
-                const { data, error } = await supabase
+                await supabase
                     .from('budgets')
                     .upsert([budget]);
-                
-                if (error) {
-                    console.warn('⚠️ Erro ao salvar no Supabase:', error);
-                } else {
-                    console.log('✅ Salvo no Supabase com sucesso!', data);
-                    savedToSupabase = true;
-                }
             } catch (error) {
-                console.warn('⚠️ Erro na conexão com Supabase:', error);
+                console.warn('⚠️ Erro ao salvar no Supabase:', error);
             }
         }
         
         // SALVAR LOCALMENTE (LOCALSTORAGE)
         try {
-            console.log('💾 Salvando no localStorage...');
-            
             if (editBudgetId) {
                 const index = budgets.findIndex(b => b.id === editBudgetId);
                 if (index !== -1) {
@@ -682,26 +692,11 @@ async function saveBudget() {
             }
             
             localStorage.setItem('budgets_vidra', JSON.stringify(budgets));
-            savedToLocal = true;
-            console.log('✅ Salvo no localStorage com sucesso!');
-            
         } catch (localError) {
             console.warn('⚠️ Erro ao salvar localmente:', localError);
         }
         
-        // Feedback para o usuário
-        let message = '✅ Orçamento salvo automaticamente!';
-        if (savedToSupabase && savedToLocal) {
-            message += ' (Banco de Dados + Local)';
-        } else if (savedToSupabase) {
-            message += ' (Banco de Dados)';
-        } else if (savedToLocal) {
-            message += ' (Localmente)';
-        } else {
-            message = '❌ Erro ao salvar o orçamento';
-        }
-        
-        // Limpar formulário e mostrar sucesso
+        // Limpar formulário SEM mostrar aviso
         clearBudget();
         clienteEl.value = '';
         telefoneEl.value = '';
@@ -710,11 +705,9 @@ async function saveBudget() {
         // Atualizar lista de orçamentos salvos
         renderSavedBudgets();
         
-        showNotification(message);
-        
     } catch (error) {
         console.error('❌ Erro ao salvar orçamento:', error);
-        showNotification('❌ Erro ao salvar orçamento: ' + error.message, 'error');
+        // Não mostrar erro para o usuário também
     }
 }
 
@@ -742,7 +735,7 @@ function renderSavedBudgets() {
     if (filteredBudgets.length === 0) {
         savedBudgetsDiv.innerHTML = `
             <div class="muted" style="text-align:center; padding:15px;">
-                ${searchTerm ? ' Nenhum orçamento encontrado...' : ' Nenhum orçamento salvo localmente...'}
+                ${searchTerm ? '🔍 Nenhum orçamento encontrado...' : '💾 Nenhum orçamento salvo localmente...'}
             </div>
         `;
         return;
@@ -824,15 +817,13 @@ function deleteBudget(budgetId) {
                 .then(({ error }) => {
                     if (error) {
                         console.warn('⚠️ Erro ao excluir do Supabase:', error);
-                    } else {
-                        console.log('✅ Excluído do Supabase também');
                     }
                 });
         }
         
         // Atualizar interface
         renderSavedBudgets();
-        showNotification('✅ Orçamento excluído com sucesso (local + banco)');
+        showNotification('Orçamento excluído com sucesso');
         
     } catch (error) {
         console.error('❌ Erro ao excluir orçamento:', error);
@@ -1002,7 +993,7 @@ function exportBudgetPDFFromData(budget) {
         doc.text('Medidas', margin + 100, yPosition + 5);
         doc.text('Área', margin + 130, yPosition + 5);
         doc.text('Qtd', margin + 150, yPosition + 5);
-        doc.text('Valor', margin + 160, yPosition + 5);
+        doc.text('Valor', margin + 170, yPosition + 5);
         
         yPosition += 8;
         
@@ -1024,7 +1015,7 @@ function exportBudgetPDFFromData(budget) {
                 doc.text('Medidas', margin + 100, yPosition + 5);
                 doc.text('Área', margin + 130, yPosition + 5);
                 doc.text('Qtd', margin + 150, yPosition + 5);
-                doc.text('Valor', margin + 160, yPosition + 5);
+                doc.text('Valor', margin + 170, yPosition + 5);
                 
                 yPosition += 15;
             }
@@ -1100,11 +1091,11 @@ function exportBudgetPDFFromData(budget) {
         yPosition += 4;
         
         // Contatos
-        doc.text('(42) 99960-8330 sremersonp@gmail.com', pageWidth / 2, yPosition, { align: 'center' });
+        doc.text('(42) 99960-8330 •  sremersonp@gmail.com', pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 4;
         
         // Horário de funcionamento
-        doc.text(' Segunda a Sexta: 8h às 18h • Sábado: 8h às 12h', pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(' Segunda a Sexta: 8h às 18h', pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 4;
         
         // Especialidades
@@ -1140,11 +1131,11 @@ function exportBudgetPDFFromData(budget) {
         const fileName = `orcamento_${budget.client.replace(/\s+/g, '_')}_${budget.date}.pdf`;
         doc.save(fileName);
         
-        showNotification('PDF gerado com sucesso!');
+        showNotification('📄 PDF gerado com sucesso!');
         
     } catch (error) {
-        console.error('x Erro ao gerar PDF:', error);
-        showNotification('x Erro ao gerar PDF: ' + error.message, 'error');
+        console.error('❌ Erro ao gerar PDF:', error);
+        showNotification('❌ Erro ao gerar PDF: ' + error.message, 'error');
     }
 }
 
@@ -1330,9 +1321,6 @@ async function deleteBudgetAdmin(budgetId) {
             
             if (!error) {
                 deletedFromSupabase = true;
-                console.log('✅ Excluído do Supabase');
-            } else {
-                console.warn('⚠️ Erro ao excluir do Supabase:', error);
             }
         }
         
@@ -1342,20 +1330,9 @@ async function deleteBudgetAdmin(budgetId) {
         if (budgets.length < initialLength) {
             localStorage.setItem('budgets_vidra', JSON.stringify(budgets));
             deletedFromLocal = true;
-            console.log('✅ Excluído localmente');
         }
         
-        // Feedback
-        let message = '✅ Orçamento excluído com sucesso';
-        if (deletedFromSupabase && deletedFromLocal) {
-            message += ' (Banco + Local)';
-        } else if (deletedFromSupabase) {
-            message += ' (Banco)';
-        } else if (deletedFromLocal) {
-            message += ' (Local)';
-        }
-        
-        showNotification(message);
+        showNotification('✅ Orçamento excluído com sucesso');
         await viewAllBudgets(); // Recarregar a lista
         
     } catch (error) {
